@@ -62,6 +62,10 @@ function getPageContext() {
 
     // Try multiple selectors (Instagram changes these frequently)
     const captionSelectors = [
+      // User-provided specific path (most current)
+      '#mount_0_0_vB span span',
+      'div.x1ey2m1c span',
+      // Generic fallbacks
       'h1',
       'span._ap3a._aaco._aacu._aacx._aad7._aade',
       'span.x193iq5w',
