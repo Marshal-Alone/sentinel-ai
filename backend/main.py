@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pinecone import Pinecone
 from sentence_transformers import SentenceTransformer
 from youtube_transcript_api import YouTubeTranscriptApi
+import yt_dlp
 import uuid
 from datetime import datetime
 
@@ -46,7 +47,39 @@ class ActivityLog(BaseModel):
 class Query(BaseModel):
     text: str
 
-def get_video_id(url):
+def get_youtube_transcript(video_id):
+    """Fetches the full spoken transcript of a YouTube video."""
+    try:
+        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+        # Combine all the lines into one big text block
+        full_text = " ".join([t['text'] for t in transcript_list])
+        return full_text
+    except Exception as e:
+        print(f"Error getting YT transcript: {e}")
+        return None
+
+def get_instagram_details(url):
+    """Fetches the full caption, author, and description from an Instagram Reel."""
+    ydl_opts = {
+        'quiet': True,
+        'skip_download': True, # We only want text, not the video file
+        'no_warnings': True,
+        'ignoreerrors': True
+    }
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            if info:
+                description = info.get('description', '')
+                uploader = info.get('uploader', 'Unknown')
+                title = info.get('title', '')
+                return f"Reel by {uploader}: {title}\n\nCaption: {description}"
+    except Exception as e:
+        print(f"Error getting IG details: {e}")
+    return None
+
+def extract_video_id(url):
+    """Finds the ID from a YouTube URL."""
     if "v=" in url:
         return url.split("v=")[1].split("&")[0]
     elif "youtu.be/" in url:
@@ -62,25 +95,33 @@ async def ingest_activity(log: ActivityLog):
     if not index:
          raise HTTPException(status_code=500, detail="Pinecone API Key not configured")
 
-    print(f"📥 Signal: {log.title[:30]}...")
+    print(f"🧠 Processing: {log.url}")
     
-    final_content = log.content
+    final_content = log.content # Start with what the browser sent
     
-    # YouTube Logic
+    # --- INTELLIGENT CONTEXT EXPANSION ---
+    
+    # 1. YOUTUBE STRATEGY
     if "youtube.com" in log.url or "youtu.be" in log.url:
-        vid_id = get_video_id(log.url)
+        vid_id = extract_video_id(log.url)
         if vid_id:
-            try:
-                transcript_list = YouTubeTranscriptApi.get_transcript(vid_id)
-                dialogue = " ".join([t['text'] for t in transcript_list])[:2000]
-                final_content = f"VIDEO TITLE: {log.title} | DIALOGUE: {dialogue}"
-            except Exception:
-                pass
+            transcript = get_youtube_transcript(vid_id)
+            if transcript:
+                # We combine the Title + Transcript for maximum searchability
+                final_content = f"VIDEO TITLE: {log.title}\nTRANSCRIPT: {transcript[:4000]}" # Limit to 4000 chars to save DB space
+                print("   ✅ YouTube Transcript attached.")
 
-    # Generate Vector (Embedding)
+    # 2. INSTAGRAM / TIKTOK STRATEGY
+    elif "instagram.com/reel" in log.url or "tiktok.com" in log.url:
+        ig_details = get_instagram_details(log.url)
+        if ig_details:
+            final_content = f"SOCIAL POST: {log.title}\nDETAILS: {ig_details}"
+            print("   ✅ Instagram Context attached.")
+
+    # 3. Create the Memory (Embedding)
     vector = model.encode(final_content).tolist()
 
-    # Upload to Pinecone
+    # 4. Store in Cloud Memory (Pinecone)
     index.upsert(
         vectors=[{
             "id": str(uuid.uuid4()),
@@ -88,12 +129,12 @@ async def ingest_activity(log: ActivityLog):
             "metadata": {
                 "title": log.title,
                 "url": log.url,
-                "content": final_content[:1000], # Store text snippet for display
+                "content": final_content[:2000], # Store readable text for the UI
                 "timestamp": log.timestamp
             }
         }]
     )
-    return {"status": "stored"}
+    return {"status": "saved", "content_preview": final_content[:50]}
 
 @app.post("/recall")
 async def recall_memory(query: Query):

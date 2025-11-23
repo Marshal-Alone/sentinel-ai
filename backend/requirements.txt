@@ -5,3 +5,5 @@ sentence-transformers
 pinecone
 youtube-transcript-api
 python-multipart
+yt-dlp
+requests
