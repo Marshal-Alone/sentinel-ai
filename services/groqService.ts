@@ -2,6 +2,9 @@ import { MemoryItem, SentinelMode, ChatMessage } from "../types";
 
 // Use environment variable for API key
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || "";
+
+// Debug logging (remove after fixing)
+console.log("Groq API Key loaded:", GROQ_API_KEY ? `${GROQ_API_KEY.substring(0, 10)}...` : "NOT FOUND");
 const MODEL_NAME = "llama-3.3-70b-versatile";
 
 /**
