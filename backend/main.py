@@ -50,27 +50,22 @@ class Query(BaseModel):
 def get_youtube_transcript(video_id):
     """Fetches the full spoken transcript of a YouTube video."""
     try:
-        # Correct usage: static method that returns list of transcript dicts
-        from youtube_transcript_api import YouTubeTranscriptApi as YT_API
+        # New API: instantiate YouTubeTranscriptApi and call fetch()
+        from youtube_transcript_api import YouTubeTranscriptApi
         
-        transcript_list = YT_API.get_transcript(video_id, languages=['en', 'en-US'])
+        ytt_api = YouTubeTranscriptApi()
+        fetched_transcript = ytt_api.fetch(video_id)
+        
+        # Convert to raw data (list of dicts)
+        transcript_data = fetched_transcript.to_raw_data()
         
         # Combine all text segments
-        full_text = " ".join([entry['text'] for entry in transcript_list])
+        full_text = " ".join([entry['text'] for entry in transcript_data])
         return full_text
         
     except Exception as e:
         print(f"Error getting YT transcript: {e}")
-        # Try without language specification
-        try:
-            from youtube_transcript_api import YouTubeTranscriptApi as YT_API
-            transcript_list = YT_API.get_transcript(video_id)
-            full_text = " ".join([entry['text'] for entry in transcript_list])
-            return full_text
-        except:
-            return None
-    
-    return None
+        return None
 
 def get_instagram_details(url):
     """Fetches captions, subtitles, and metadata from Instagram/TikTok videos."""

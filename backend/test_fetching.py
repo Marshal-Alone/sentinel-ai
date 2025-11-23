@@ -30,11 +30,16 @@ def test_youtube(video_url='https://www.youtube.com/watch?v=tkJdbRDtktk'):
         return
     
     try:
-        transcript_list = YouTubeTranscriptApi.get_transcript(vid_id)
-        full_text = " ".join([t['text'] for t in transcript_list])
+        from youtube_transcript_api import YouTubeTranscriptApi
+        
+        # Use new API
+        ytt_api = YouTubeTranscriptApi()
+        fetched_transcript = ytt_api.fetch(vid_id)
+        transcript_data = fetched_transcript.to_raw_data()
+        full_text = " ".join([t['text'] for t in transcript_data])
         
         print(f"\n✅ SUCCESS!")
-        print(f"Transcript segments: {len(transcript_list)}")
+        print(f"Transcript segments: {len(transcript_data)}")
         print(f"Total characters: {len(full_text)}")
         print(f"\nFirst 500 characters:")
         print("-" * 70)
