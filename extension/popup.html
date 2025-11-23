@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { width: 250px; padding: 15px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #f9f9f9; }
+    h3 { margin-top: 0; color: #333; }
+    button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; width: 100%; margin-bottom: 10px; transition: opacity 0.2s; }
+    button:hover { opacity: 0.9; }
+    .on { background-color: #4CAF50; color: white; }
+    .off { background-color: #f44336; color: white; }
+    
+    .config-section { margin-top: 15px; border-top: 1px solid #ddd; padding-top: 10px; text-align: left; }
+    label { font-size: 12px; color: #666; display: block; margin-bottom: 5px; }
+    input[type="text"] { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; }
+    #saveBtn { background-color: #2196F3; color: white; margin-top: 5px; }
+    .status-msg { font-size: 11px; color: #4CAF50; height: 15px; margin-top: 2px; text-align: center; }
+  </style>
+</head>
+<body>
+  <h3>Sentinel AI</h3>
+  
+  <button id="toggleBtn" class="on">SENTINEL ON</button>
+  
+  <div class="config-section">
+    <label for="apiUrl">Backend URL:</label>
+    <input type="text" id="apiUrl" placeholder="http://localhost:8000">
+    <button id="saveBtn">Save Config</button>
+    <div id="statusMsg" class="status-msg"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel AI Icon Generator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .canvas-container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .icon-wrapper {
+            text-align: center;
+        }
+        canvas {
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            background: white;
+            display: block;
+            margin: 10px auto;
+        }
+        .instructions {
+            max-width: 600px;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #667eea;
+            margin-top: 20px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        .instructions ol {
+            text-align: left;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <h1>🛡️ Sentinel AI Icon Generator</h1>
+    
+    <div class="canvas-container">
+        <div class="icon-wrapper">
+            <h3>16x16</h3>
+            <canvas id="icon16" width="16" height="16"></canvas>
+            <button onclick="downloadIcon('icon16', 'icon16.png')">Download</button>
+        </div>
+        <div class="icon-wrapper">
+            <h3>48x48</h3>
+            <canvas id="icon48" width="48" height="48"></canvas>
+            <button onclick="downloadIcon('icon48', 'icon48.png')">Download</button>
+        </div>
+        <div class="icon-wrapper">
+            <h3>128x128</h3>
+            <canvas id="icon128" width="128" height="128"></canvas>
+            <button onclick="downloadIcon('icon128', 'icon128.png')">Download</button>
+        </div>
+    </div>
+
+    <div class="instructions">
+        <h3>📋 Instructions</h3>
+        <ol>
+            <li>Click the "Download" button under each icon size to save it</li>
+            <li>Save the icons in the <code>icons</code> folder</li>
+            <li>Update your manifest.json to include the icons</li>
+        </ol>
+    </div>
+
+    <script>
+        function drawIcon(canvasId, size) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Calculate proportions based on size
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const eyeWidth = size * 0.5;
+            const eyeHeight = size * 0.3;
+            const pupilRadius = size * 0.08;
+            
+            // Draw stylized eye
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = Math.max(1, size * 0.04);
+            
+            // Eye outline (almond shape)
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, eyeWidth / 2, eyeHeight / 2, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Pupil
+            ctx.fillStyle = '#667eea';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, pupilRadius, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Inner pupil highlight
+            ctx.fillStyle = '#764ba2';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, pupilRadius * 0.5, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Circuit lines (AI element)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = Math.max(1, size * 0.02);
+            
+            // Top circuit lines
+            if (size >= 48) {
+                ctx.beginPath();
+                ctx.moveTo(centerX - eyeWidth * 0.3, centerY - eyeHeight);
+                ctx.lineTo(centerX - eyeWidth * 0.3, centerY - eyeHeight - size * 0.15);
+                ctx.lineTo(centerX, centerY - eyeHeight - size * 0.15);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX + eyeWidth * 0.3, centerY - eyeHeight);
+                ctx.lineTo(centerX + eyeWidth * 0.3, centerY - eyeHeight - size * 0.15);
+                ctx.lineTo(centerX, centerY - eyeHeight - size * 0.15);
+                ctx.stroke();
+                
+                // Bottom circuit lines
+                ctx.beginPath();
+                ctx.moveTo(centerX - eyeWidth * 0.3, centerY + eyeHeight);
+                ctx.lineTo(centerX - eyeWidth * 0.3, centerY + eyeHeight + size * 0.15);
+                ctx.lineTo(centerX, centerY + eyeHeight + size * 0.15);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX + eyeWidth * 0.3, centerY + eyeHeight);
+                ctx.lineTo(centerX + eyeWidth * 0.3, centerY + eyeHeight + size * 0.15);
+                ctx.lineTo(centerX, centerY + eyeHeight + size * 0.15);
+                ctx.stroke();
+                
+                // Circuit nodes
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                const nodeRadius = size * 0.02;
+                [
+                    [centerX - eyeWidth * 0.3, centerY - eyeHeight - size * 0.15],
+                    [centerX + eyeWidth * 0.3, centerY - eyeHeight - size * 0.15],
+                    [centerX - eyeWidth * 0.3, centerY + eyeHeight + size * 0.15],
+                    [centerX + eyeWidth * 0.3, centerY + eyeHeight + size * 0.15],
+                    [centerX, centerY - eyeHeight - size * 0.15],
+                    [centerX, centerY + eyeHeight + size * 0.15]
+                ].forEach(([x, y]) => {
+                    ctx.beginPath();
+                    ctx.arc(x, y, nodeRadius, 0, 2 * Math.PI);
+                    ctx.fill();
+                });
+            }
+        }
+
+        function downloadIcon(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Draw all icons on page load
+        window.onload = function() {
+            drawIcon('icon16', 16);
+            drawIcon('icon48', 48);
+            drawIcon('icon128', 128);
+        };
+    </script>
+</body>
+</html>

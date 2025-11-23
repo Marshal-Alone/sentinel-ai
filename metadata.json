@@ -1,0 +1,5 @@
+{
+  "name": "Sentinel AI",
+  "description": "A context-aware AI guardian that acts as a second brain. Two modes: Study Sentinel for academic resources (PDFs, Notes) and Life Sentinel for activity tracking (Watch history, Reading logs).",
+  "requestFramePermissions": []
+}
