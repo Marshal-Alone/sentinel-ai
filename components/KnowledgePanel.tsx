@@ -13,6 +13,7 @@ const KnowledgePanel: React.FC<KnowledgePanelProps> = ({ mode, memories, onAddMe
   const [activeTab, setActiveTab] = useState<'VIEW' | 'ADD'>('VIEW');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
+  const [selectedMemory, setSelectedMemory] = useState<MemoryItem | null>(null);
 
   // Form State for Life Log
   const [logTitle, setLogTitle] = useState('');
@@ -100,12 +101,44 @@ const KnowledgePanel: React.FC<KnowledgePanelProps> = ({ mode, memories, onAddMe
     setActiveTab('VIEW');
   };
 
-  const filteredMemories = memories.filter(m => 
+  const filteredMemories = memories.filter(m =>
     mode === 'STUDY' ? m.type === 'PDF' : m.type !== 'PDF'
   );
 
   return (
     <div className="w-80 bg-sentinel-card border-l border-gray-700 flex flex-col h-full overflow-hidden shrink-0">
+      {/* Modal for full context */}
+      {selectedMemory && (
+        <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setSelectedMemory(null)}>
+          <div className="bg-sentinel-dark border-2 border-gray-700 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b border-gray-700 flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-white">{selectedMemory.title}</h3>
+                {selectedMemory.metadata?.url && (
+                  <a href={selectedMemory.metadata.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline mt-1 inline-block">
+                    {selectedMemory.metadata.url}
+                  </a>
+                )}
+                <div className="text-xs text-gray-500 mt-1">
+                  {new Date(selectedMemory.timestamp).toLocaleString()} • {selectedMemory.metadata?.platform || 'OTHER'}
+                </div>
+              </div>
+              <button onClick={() => setSelectedMemory(null)} className="text-gray-400 hover:text-white ml-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1 custom-scrollbar">
+              <div className="text-sm text-gray-300 whitespace-pre-wrap font-mono bg-gray-900/50 rounded p-4 border border-gray-700">
+                {selectedMemory.content.length > 50 ? selectedMemory.content : selectedMemory.metadata?.description || selectedMemory.content || 'No content available'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="p-4 border-b border-gray-700">
         <h2 className="text-sentinel-text font-semibold flex items-center gap-2">
           <Brain className="w-5 h-5 text-sentinel-primary" />
@@ -118,13 +151,13 @@ const KnowledgePanel: React.FC<KnowledgePanelProps> = ({ mode, memories, onAddMe
 
       {/* Tabs */}
       <div className="flex p-2 gap-2 bg-sentinel-dark/50">
-        <button 
+        <button
           onClick={() => setActiveTab('VIEW')}
           className={`flex-1 py-1.5 text-sm rounded-md transition-colors ${activeTab === 'VIEW' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
         >
           Memory
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('ADD')}
           className={`flex-1 py-1.5 text-sm rounded-md transition-colors ${activeTab === 'ADD' ? 'bg-sentinel-primary text-white' : 'text-gray-400 hover:text-white'}`}
         >
@@ -137,29 +170,45 @@ const KnowledgePanel: React.FC<KnowledgePanelProps> = ({ mode, memories, onAddMe
           <div className="space-y-3">
             {filteredMemories.length === 0 && (
               <div className="text-center text-sentinel-muted text-sm mt-10">
-                No memories found.<br/>
+                No memories found.<br />
                 {mode === 'STUDY' ? 'Upload a PDF to start.' : 'Import logs or add manually.'}
               </div>
             )}
             {filteredMemories.map((mem) => (
-              <div key={mem.id} className="bg-sentinel-dark p-3 rounded-lg border border-gray-700 group hover:border-sentinel-primary transition-colors">
+              <div
+                key={mem.id}
+                className="bg-sentinel-dark p-3 rounded-lg border border-gray-700 group hover:border-sentinel-primary transition-colors cursor-pointer"
+                onClick={() => setSelectedMemory(mem)}
+              >
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-2 overflow-hidden">
-                     {mem.type === 'PDF' ? <FileText className="w-4 h-4 text-blue-400 shrink-0" /> : 
+                    {mem.type === 'PDF' ? <FileText className="w-4 h-4 text-blue-400 shrink-0" /> :
                       mem.metadata?.platform === 'YOUTUBE' ? <Youtube className="w-4 h-4 text-red-500 shrink-0" /> :
-                      mem.metadata?.platform === 'INSTAGRAM' ? <Instagram className="w-4 h-4 text-pink-500 shrink-0" /> :
-                      <Clapperboard className="w-4 h-4 text-purple-400 shrink-0" />
-                     }
+                        mem.metadata?.platform === 'INSTAGRAM' ? <Instagram className="w-4 h-4 text-pink-500 shrink-0" /> :
+                          <Clapperboard className="w-4 h-4 text-purple-400 shrink-0" />
+                    }
                     <div className="flex flex-col overflow-hidden">
-                        <span className="font-medium text-sm text-gray-200 truncate">{mem.title}</span>
-                        {mem.metadata?.url && (
-                             <a href={mem.metadata.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:underline truncate">
-                                {mem.metadata.url}
-                             </a>
-                        )}
+                      <span className="font-medium text-sm text-gray-200 truncate">{mem.title}</span>
+                      {mem.metadata?.url && (
+                        <a
+                          href={mem.metadata.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-blue-400 hover:underline truncate"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {mem.metadata.url}
+                        </a>
+                      )}
                     </div>
                   </div>
-                  <button onClick={() => onRemoveMemory(mem.id)} className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveMemory(mem.id);
+                    }}
+                    className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -180,93 +229,93 @@ const KnowledgePanel: React.FC<KnowledgePanelProps> = ({ mode, memories, onAddMe
                 <FileText className="w-8 h-8 mx-auto text-gray-400 mb-2" />
                 <p className="text-sm text-gray-300">Click to upload PDF</p>
                 <p className="text-xs text-gray-500 mt-1">Lecture notes, Textbooks, PYQs</p>
-                <input 
-                  type="file" 
-                  accept="application/pdf" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  onChange={handlePdfUpload} 
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handlePdfUpload}
                 />
               </div>
             )}
 
             {/* LIFE MODE IMPORT */}
             {mode === 'LIFE' && (
-                <div className="space-y-6">
-                    {/* JSON Import Section */}
-                    <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                        <h3 className="text-sm font-semibold text-gray-200 mb-2 flex items-center gap-2">
-                             <Search className="w-4 h-4 text-sentinel-secondary" />
-                             Import Extension Data
-                        </h3>
-                        <p className="text-xs text-gray-400 mb-3">
-                            Upload the <code>sentinel_history.json</code> file from your Chrome Extension to sync your browsing history.
-                        </p>
-                        <button 
-                             onClick={() => jsonInputRef.current?.click()}
-                             className="w-full bg-gray-700 hover:bg-gray-600 text-gray-200 py-2 rounded-md text-xs font-medium transition-colors border border-gray-600"
-                        >
-                            Select JSON File
-                        </button>
-                        <input 
-                            type="file" 
-                            accept=".json" 
-                            ref={jsonInputRef} 
-                            className="hidden" 
-                            onChange={handleJsonUpload} 
-                        />
-                    </div>
-
-                    <div className="relative flex items-center">
-                        <div className="flex-grow border-t border-gray-700"></div>
-                        <span className="flex-shrink-0 mx-4 text-gray-500 text-xs">OR MANUAL ENTRY</span>
-                        <div className="flex-grow border-t border-gray-700"></div>
-                    </div>
-
-                    {/* Manual Form */}
-                    <div className="space-y-3">
-                        <div>
-                        <label className="text-xs text-gray-400 block mb-1">Platform</label>
-                        <select 
-                            value={logPlatform}
-                            onChange={(e) => setLogPlatform(e.target.value)}
-                            className="w-full bg-sentinel-dark border border-gray-700 rounded p-2 text-sm text-white focus:outline-none focus:border-sentinel-secondary"
-                        >
-                            <option value="YOUTUBE">YouTube</option>
-                            <option value="INSTAGRAM">Instagram (Reels)</option>
-                            <option value="NETFLIX">Netflix/Streaming</option>
-                            <option value="CRUNCHYROLL">Anime</option>
-                            <option value="OTHER">Other</option>
-                        </select>
-                        </div>
-                        <div>
-                        <label className="text-xs text-gray-400 block mb-1">Title / Show</label>
-                        <input 
-                            type="text" 
-                            value={logTitle}
-                            onChange={(e) => setLogTitle(e.target.value)}
-                            placeholder="e.g. One Piece Ep 1071" 
-                            className="w-full bg-sentinel-dark border border-gray-700 rounded p-2 text-sm text-white focus:outline-none focus:border-sentinel-secondary"
-                        />
-                        </div>
-                        <div>
-                        <label className="text-xs text-gray-400 block mb-1">Context / Description</label>
-                        <textarea 
-                            value={logDesc}
-                            onChange={(e) => setLogDesc(e.target.value)}
-                            placeholder="e.g. Gear 5 reveal, drums of liberation scene..." 
-                            rows={3}
-                            className="w-full bg-sentinel-dark border border-gray-700 rounded p-2 text-sm text-white focus:outline-none focus:border-sentinel-secondary resize-none"
-                        />
-                        </div>
-                        <button 
-                            onClick={handleAddLog}
-                            className="w-full bg-sentinel-secondary hover:bg-purple-600 text-white py-2 rounded-md text-sm font-medium transition-colors"
-                        >
-                            Add Manual Entry
-                        </button>
-                    </div>
+              <div className="space-y-6">
+                {/* JSON Import Section */}
+                <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-200 mb-2 flex items-center gap-2">
+                    <Search className="w-4 h-4 text-sentinel-secondary" />
+                    Import Extension Data
+                  </h3>
+                  <p className="text-xs text-gray-400 mb-3">
+                    Upload the <code>sentinel_history.json</code> file from your Chrome Extension to sync your browsing history.
+                  </p>
+                  <button
+                    onClick={() => jsonInputRef.current?.click()}
+                    className="w-full bg-gray-700 hover:bg-gray-600 text-gray-200 py-2 rounded-md text-xs font-medium transition-colors border border-gray-600"
+                  >
+                    Select JSON File
+                  </button>
+                  <input
+                    type="file"
+                    accept=".json"
+                    ref={jsonInputRef}
+                    className="hidden"
+                    onChange={handleJsonUpload}
+                  />
                 </div>
+
+                <div className="relative flex items-center">
+                  <div className="flex-grow border-t border-gray-700"></div>
+                  <span className="flex-shrink-0 mx-4 text-gray-500 text-xs">OR MANUAL ENTRY</span>
+                  <div className="flex-grow border-t border-gray-700"></div>
+                </div>
+
+                {/* Manual Form */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">Platform</label>
+                    <select
+                      value={logPlatform}
+                      onChange={(e) => setLogPlatform(e.target.value)}
+                      className="w-full bg-sentinel-dark border border-gray-700 rounded p-2 text-sm text-white focus:outline-none focus:border-sentinel-secondary"
+                    >
+                      <option value="YOUTUBE">YouTube</option>
+                      <option value="INSTAGRAM">Instagram (Reels)</option>
+                      <option value="NETFLIX">Netflix/Streaming</option>
+                      <option value="CRUNCHYROLL">Anime</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">Title / Show</label>
+                    <input
+                      type="text"
+                      value={logTitle}
+                      onChange={(e) => setLogTitle(e.target.value)}
+                      placeholder="e.g. One Piece Ep 1071"
+                      className="w-full bg-sentinel-dark border border-gray-700 rounded p-2 text-sm text-white focus:outline-none focus:border-sentinel-secondary"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">Context / Description</label>
+                    <textarea
+                      value={logDesc}
+                      onChange={(e) => setLogDesc(e.target.value)}
+                      placeholder="e.g. Gear 5 reveal, drums of liberation scene..."
+                      rows={3}
+                      className="w-full bg-sentinel-dark border border-gray-700 rounded p-2 text-sm text-white focus:outline-none focus:border-sentinel-secondary resize-none"
+                    />
+                  </div>
+                  <button
+                    onClick={handleAddLog}
+                    className="w-full bg-sentinel-secondary hover:bg-purple-600 text-white py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Add Manual Entry
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         )}

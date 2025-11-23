@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import KnowledgePanel from './components/KnowledgePanel';
 import { SentinelMode, MemoryItem, ChatMessage } from './types';
-import { generateSentinelResponse } from './services/geminiService';
+import { generateSentinelResponse } from './services/groqService';
 import { brainService } from './services/brainService';
 import { Send, Shield, Brain } from './components/Icons';
 

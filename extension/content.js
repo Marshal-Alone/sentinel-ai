@@ -9,9 +9,36 @@ function getPageContext() {
   const url = window.location.href;
   let content = "";
   let title = document.title;
+  let type = "web";
 
-  // --- STRATEGY 1: CHATGPT SPECIFIC ---
-  if (url.includes("chatgpt.com")) {
+  // --- STRATEGY 1: INSTAGRAM DIRECT MESSAGES (The Fix) ---
+  if (url.includes("instagram.com/direct/t/")) {
+    type = "chat";
+    // 1. Grab the person's name from the header
+    const headerName = document.querySelector("header h1, header span")?.innerText || "Unknown Chat";
+    title = `Chat with ${headerName}`;
+
+    // 2. Scrape the message bubbles (accessibility roles are usually stable)
+    // IG uses role="row" or "listitem" for messages. We grab the last 20.
+    const messages = Array.from(document.querySelectorAll('[role="row"], [role="listitem"]'))
+      .slice(-20) // Only keep the latest 20 messages to maintain context
+      .map(msg => {
+        // Distinguish between "Me" and "Them" is hard without complex logic, 
+        // so we just grab the raw text which usually looks like: "10:00 PM You: Hello"
+        return msg.innerText.replace(/\n/g, " ");
+      })
+      .join("\n");
+
+    if (messages.length > 0) {
+      content = `CONVERSATION CONTEXT:\n${messages}`;
+    } else {
+      // Fallback: If specific selectors fail, grab the main text body
+      content = document.querySelector("main")?.innerText || "Active chat window";
+    }
+  }
+
+  // --- STRATEGY 2: CHATGPT SPECIFIC ---
+  else if (url.includes("chatgpt.com")) {
     const userMessages = document.querySelectorAll('[data-message-author-role="user"]');
     const aiMessages = document.querySelectorAll('[data-message-author-role="assistant"]');
 
@@ -26,15 +53,24 @@ function getPageContext() {
     }
   }
 
-  // --- STRATEGY 2: INSTAGRAM REELS SPECIFIC ---
+  // --- STRATEGY 3: INSTAGRAM REELS SPECIFIC ---
   else if (url.includes("instagram.com/reel")) {
+    type = "social_video";
+    // We rely on the URL mainly, but try to grab visible caption if possible
     const captionEl = document.querySelector('h1') || document.querySelector('span._aacl');
     const captionText = captionEl ? captionEl.innerText : "Watched an Instagram Reel";
 
     content = `Reel URL: ${url} - Caption Preview: ${captionText}`;
   }
 
-  // --- STRATEGY 3: GENERIC WEBPAGE ---
+  // --- STRATEGY 4: YOUTUBE SPECIFIC ---
+  else if (url.includes("youtube.com/watch") || url.includes("youtu.be/")) {
+    type = "video";
+    // For YouTube, just send the URL and title - the backend will fetch the full transcript
+    content = `YouTube Video: ${url}`;
+  }
+
+  // --- STRATEGY 5: GENERIC WEBPAGE ---
   else {
     const metaDesc = document.querySelector("meta[name='description']")?.content || "";
     const headers = Array.from(document.querySelectorAll('h1, h2'))
@@ -48,7 +84,8 @@ function getPageContext() {
     title: title,
     url: url,
     content: content,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    type: type
   };
 }
 
