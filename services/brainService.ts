@@ -46,5 +46,17 @@ export const brainService = {
     } catch (error) {
       return false;
     }
+  },
+
+  async fetchAll(): Promise<Memory[]> {
+    try {
+      const response = await fetch(`${API_URL}/memories`);
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data.memories;
+    } catch (error) {
+      console.error("Failed to fetch all memories:", error);
+      return [];
+    }
   }
 };

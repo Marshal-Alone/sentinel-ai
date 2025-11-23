@@ -69,11 +69,36 @@ const App: React.FC = () => {
   // Brain Status
   const [brainOnline, setBrainOnline] = useState(false);
 
-  // Check for Python Backend on mount
+  // Check for Python Backend on mount AND fetch memories
   useEffect(() => {
     const checkBrain = async () => {
       const isOnline = await brainService.checkHealth();
       setBrainOnline(isOnline);
+
+      if (isOnline) {
+        // Fetch all memories from the cloud to populate the sidebar
+        const cloudMemories = await brainService.fetchAll();
+        if (cloudMemories.length > 0) {
+          const mappedCloudMemories: MemoryItem[] = cloudMemories.map((bm, idx) => ({
+            id: bm.metadata?.url || `cloud-${idx}`, // Use URL as ID to dedupe
+            type: 'VIDEO_LOG',
+            title: bm.metadata.title,
+            content: bm.content,
+            timestamp: new Date(bm.metadata.time).getTime(),
+            metadata: {
+              url: bm.metadata.url,
+              platform: bm.metadata.url.includes('youtube') ? 'YOUTUBE' : 'OTHER',
+              description: bm.content.substring(0, 100)
+            }
+          }));
+
+          setMemories(prev => {
+            const existingIds = new Set(prev.map(m => m.metadata?.url || m.id));
+            const newMemories = mappedCloudMemories.filter(bm => !existingIds.has(bm.metadata?.url));
+            return [...newMemories, ...prev];
+          });
+        }
+      }
     };
     checkBrain();
     const interval = setInterval(checkBrain, 10000); // Check every 10s
@@ -103,7 +128,7 @@ const App: React.FC = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!input.trim() || loading) return;
+    if (!input.trim()) return;
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -119,8 +144,7 @@ const App: React.FC = () => {
     try {
       let activeMemories = memories;
 
-      // HYBRID LOGIC:
-      // If Mode is LIFE and Brain is Online, fetch from Python Backend
+      // If in LIFE mode, try to fetch relevant memories from Python Brain
       if (mode === 'LIFE' && brainOnline) {
         console.log("Fetching from Brain...");
         const brainMemories = await brainService.recall(userMsg.text);
@@ -142,11 +166,18 @@ const App: React.FC = () => {
         const localLogs = memories.filter(m => m.type !== 'PDF'); // Keep manual logs
         activeMemories = [...localLogs, ...mappedBrainMemories];
 
+        // VISUALIZE: Add Brain memories to the Sidebar so the user can see them
+        setMemories(prev => {
+          const existingIds = new Set(prev.map(m => m.metadata?.url || m.id));
+          const newMemories = mappedBrainMemories.filter(bm => !existingIds.has(bm.metadata?.url));
+          return [...newMemories, ...prev];
+        });
+
         // DEBUG: Notify user of brain activity
         setChatHistory(prev => [...prev, {
           id: Date.now().toString() + '-debug',
           role: 'model',
-          text: `*System Debug:* Found ${mappedBrainMemories.length} relevant memories in the Brain.`,
+          text: `*System Debug:* Found ${mappedBrainMemories.length} relevant memories in the Brain. Added them to your sidebar.`,
           timestamp: Date.now()
         }]);
       }
@@ -197,6 +228,7 @@ const App: React.FC = () => {
         currentMode={mode}
         setMode={setMode}
         onClearChat={handleClearChat}
+        memories={memories}
       />
 
       {/* Main Chat Area */}

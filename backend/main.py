@@ -124,6 +124,40 @@ async def recall_memory(query: Query):
             
     return {"memories": memories}
 
+@app.get("/memories")
+async def get_all_memories():
+    if not index:
+         raise HTTPException(status_code=500, detail="Pinecone API Key not configured")
+
+    # Create a generic "neutral" vector to match everything (or as much as possible)
+    # We use a vector of small non-zero values to avoid zero-vector issues
+    dummy_vector = [0.01] * 384
+
+    # Fetch top 100 most recent/relevant items
+    results = index.query(
+        vector=dummy_vector,
+        top_k=100,
+        include_metadata=True
+    )
+
+    memories = []
+    for match in results['matches']:
+        # Safety check for metadata
+        meta = match.get('metadata', {})
+        memories.append({
+            "id": match['id'],
+            "content": meta.get('content', 'No content'),
+            "metadata": {
+                "title": meta.get('title', 'Unknown Title'),
+                "url": meta.get('url', '#'),
+                "time": meta.get('timestamp', datetime.now().isoformat()),
+                "platform": "YOUTUBE" if "youtube" in meta.get('url', '') else "OTHER"
+            },
+            "score": match['score']
+        })
+            
+    return {"memories": memories}
+
 if __name__ == "__main__":
     import uvicorn
     # Change port to 7860

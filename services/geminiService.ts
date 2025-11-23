@@ -2,7 +2,7 @@ import { GoogleGenAI, Chat, Content } from "@google/genai";
 import { MemoryItem, SentinelMode, ChatMessage } from "../types";
 
 // Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY || '' });
 
 const MODEL_NAME = "gemini-2.5-flash";
 
@@ -28,9 +28,9 @@ const getSystemInstruction = (mode: SentinelMode, memories: MemoryItem[]): strin
     // LIFE SENTINEL
     // Ingest logs including URLs
     // Note: If using Python Backend, 'memories' will contain the vector search results specifically relevant to the query.
-    
+
     const activityLog = memories
-      .filter(m => m.type !== 'PDF') 
+      .filter(m => m.type !== 'PDF')
       .map(m => `MATCHING MEMORY FOUND:
       - Date: ${new Date(m.timestamp).toLocaleDateString()}
       - Title: ${m.title}
@@ -78,7 +78,7 @@ export const generateSentinelResponse = async (
 ): Promise<string> => {
   try {
     const systemInstruction = getSystemInstruction(mode, memories);
-    
+
     // Create new chat session to inject fresh system instructions with latest memories
     const chat = ai.chats.create({
       model: MODEL_NAME,
@@ -95,22 +95,22 @@ export const generateSentinelResponse = async (
       const pdfMemories = memories.filter(m => m.type === 'PDF');
       // Limit PDFs to context window size - usually last 5 is safe for Flash model
       const recentPDFs = pdfMemories.slice(0, 5);
-      
+
       recentPDFs.forEach(pdf => {
         contentParts.push({
           inlineData: {
             mimeType: 'application/pdf',
-            data: pdf.content 
+            data: pdf.content
           }
         });
       });
     }
 
     // Call sendMessage
-    const result = await chat.sendMessage({ 
-      message: contentParts.length === 1 ? currentMessage : contentParts 
+    const result = await chat.sendMessage({
+      message: contentParts.length === 1 ? currentMessage : contentParts
     });
-    
+
     return result.text || "I processed that, but couldn't generate a text response.";
 
   } catch (error: any) {
