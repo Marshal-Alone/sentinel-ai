@@ -58,5 +58,21 @@ export const brainService = {
       console.error("Failed to fetch all memories:", error);
       return [];
     }
+  },
+
+  async deleteMemories(ids: string[], deleteAll: boolean = false): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_URL}/memories`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ids, delete_all: deleteAll }),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error("Failed to delete memories:", error);
+      return false;
+    }
   }
 };

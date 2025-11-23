@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SentinelMode, MemoryItem } from '../types';
 import { Shield, BookOpen, History } from './Icons';
 
@@ -7,9 +7,14 @@ interface SidebarProps {
   setMode: (mode: SentinelMode) => void;
   onClearChat: () => void;
   memories: MemoryItem[];
+  onDeleteMemories: (ids: string[]) => void;
+  onDeleteAll: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode, onClearChat, memories }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode, onClearChat, memories, onDeleteMemories, onDeleteAll }) => {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+
   // Group memories by platform
   const groupedMemories = memories.reduce((acc, mem) => {
     const platform = mem.metadata?.platform || 'OTHER';
@@ -17,6 +22,31 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode, onClearChat, me
     acc[platform].push(mem);
     return acc;
   }, {} as Record<string, MemoryItem[]>);
+
+  const toggleSelection = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) return;
+    if (confirm(`Delete ${selectedIds.size} memories?`)) {
+      onDeleteMemories(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      setIsSelectionMode(false);
+    }
+  };
+
+  const handleDeleteAll = () => {
+    if (confirm("WARNING: This will delete ALL memories from your Cloud Brain. This cannot be undone. Are you sure?")) {
+      onDeleteAll();
+    }
+  };
 
   return (
     <div className="w-20 md:w-64 bg-sentinel-dark border-r border-gray-700 flex flex-col justify-between h-full overflow-hidden">
@@ -52,9 +82,46 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode, onClearChat, me
 
         {/* Memory Bank Section */}
         <div className="mt-6 px-4 flex-1 overflow-y-auto">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 hidden md:block">
-            Memory Bank ({memories.length})
-          </h3>
+          <div className="flex items-center justify-between mb-3 hidden md:flex">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Memory Bank ({memories.length})
+            </h3>
+            <div className="flex gap-2">
+              {isSelectionMode ? (
+                <button
+                  onClick={() => setIsSelectionMode(false)}
+                  className="text-xs text-gray-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsSelectionMode(true)}
+                  className="text-xs text-gray-400 hover:text-white"
+                >
+                  Select
+                </button>
+              )}
+            </div>
+          </div>
+
+          {isSelectionMode && (
+            <div className="flex gap-2 mb-3 hidden md:flex">
+              <button
+                onClick={handleDeleteSelected}
+                disabled={selectedIds.size === 0}
+                className={`flex-1 py-1 text-xs rounded border ${selectedIds.size > 0 ? 'bg-red-500/20 border-red-500 text-red-400 hover:bg-red-500/30' : 'border-gray-700 text-gray-600 cursor-not-allowed'}`}
+              >
+                Delete ({selectedIds.size})
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                className="flex-1 py-1 text-xs rounded border border-red-900/50 text-red-900 hover:bg-red-900/20 hover:text-red-500"
+              >
+                Delete All
+              </button>
+            </div>
+          )}
 
           <div className="space-y-4">
             {Object.entries(groupedMemories).map(([platform, items]) => (
@@ -62,21 +129,30 @@ const Sidebar: React.FC<SidebarProps> = ({ currentMode, setMode, onClearChat, me
                 <h4 className="text-xs font-medium text-gray-400 mb-2 px-2 hidden md:block">{platform}</h4>
                 <div className="space-y-1">
                   {items.map(mem => (
-                    <a
-                      key={mem.id}
-                      href={mem.metadata?.url || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block px-3 py-2 rounded-lg hover:bg-white/5 text-left group"
-                      title={mem.title}
-                    >
-                      <div className="text-sm text-gray-300 truncate group-hover:text-white transition-colors">
-                        {mem.title || 'Untitled Memory'}
-                      </div>
-                      <div className="text-[10px] text-gray-600 truncate">
-                        {new Date(mem.timestamp).toLocaleDateString()}
-                      </div>
-                    </a>
+                    <div key={mem.id} className="flex items-center gap-2 group">
+                      {isSelectionMode && (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(mem.id)}
+                          onChange={() => toggleSelection(mem.id)}
+                          className="rounded border-gray-600 bg-gray-800 text-sentinel-secondary focus:ring-0"
+                        />
+                      )}
+                      <a
+                        href={mem.metadata?.url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`block flex-1 px-3 py-2 rounded-lg hover:bg-white/5 text-left ${selectedIds.has(mem.id) ? 'bg-white/10' : ''}`}
+                        title={mem.title}
+                      >
+                        <div className="text-sm text-gray-300 truncate group-hover:text-white transition-colors">
+                          {mem.title || 'Untitled Memory'}
+                        </div>
+                        <div className="text-[10px] text-gray-600 truncate">
+                          {new Date(mem.timestamp).toLocaleDateString()}
+                        </div>
+                      </a>
+                    </div>
                   ))}
                 </div>
               </div>

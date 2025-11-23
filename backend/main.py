@@ -158,6 +158,33 @@ async def get_all_memories():
             
     return {"memories": memories}
 
+class DeleteRequest(BaseModel):
+    ids: list[str] = []
+    delete_all: bool = False
+
+@app.delete("/memories")
+async def delete_memories(req: DeleteRequest):
+    if not index:
+         raise HTTPException(status_code=500, detail="Pinecone API Key not configured")
+
+    if req.delete_all:
+        # Delete everything in the namespace (or index if no namespace)
+        # Note: Pinecone delete_all=True is deprecated in some clients, but delete(delete_all=True) works
+        try:
+            index.delete(delete_all=True)
+            return {"status": "All memories deleted"}
+        except Exception as e:
+             raise HTTPException(status_code=500, detail=f"Failed to delete all: {str(e)}")
+    
+    if req.ids:
+        try:
+            index.delete(ids=req.ids)
+            return {"status": f"Deleted {len(req.ids)} memories"}
+        except Exception as e:
+             raise HTTPException(status_code=500, detail=f"Failed to delete IDs: {str(e)}")
+
+    return {"status": "No action taken"}
+
 if __name__ == "__main__":
     import uvicorn
     # Change port to 7860

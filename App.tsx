@@ -74,6 +74,7 @@ const App: React.FC = () => {
     const lowerUrl = url.toLowerCase();
     if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) return 'YOUTUBE';
     if (lowerUrl.includes('github.com')) return 'GITHUB';
+    if (lowerUrl.includes('chatgpt.com')) return 'CHATGPT';
     if (lowerUrl.includes('huggingface.co')) return 'HUGGING FACE';
     if (lowerUrl.includes('stackoverflow.com')) return 'STACK OVERFLOW';
     if (lowerUrl.includes('localhost')) return 'LOCAL';
@@ -184,7 +185,7 @@ const App: React.FC = () => {
           timestamp: new Date(bm.metadata.time).getTime(),
           metadata: {
             url: bm.metadata.url,
-            platform: getPlatform(bm.metadata.url),
+            platform: getPlatform(bm.metadata.url) as any,
             description: bm.content.substring(0, 100)
           }
         }));
@@ -261,6 +262,26 @@ const App: React.FC = () => {
   const modeColor = mode === 'STUDY' ? 'text-sentinel-primary' : 'text-sentinel-secondary';
   const modeBg = mode === 'STUDY' ? 'bg-sentinel-primary' : 'bg-sentinel-secondary';
 
+  const handleDeleteMemories = async (ids: string[]) => {
+    // 1. Optimistic UI update
+    setMemories(prev => prev.filter(m => !ids.includes(m.id)));
+
+    // 2. Call Backend
+    if (brainOnline) {
+      await brainService.deleteMemories(ids);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    // 1. Optimistic UI update
+    setMemories([]);
+
+    // 2. Call Backend
+    if (brainOnline) {
+      await brainService.deleteMemories([], true);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-sentinel-dark overflow-hidden">
       <Sidebar
@@ -268,6 +289,8 @@ const App: React.FC = () => {
         setMode={setMode}
         onClearChat={handleClearChat}
         memories={memories}
+        onDeleteMemories={handleDeleteMemories}
+        onDeleteAll={handleDeleteAll}
       />
 
       {/* Main Chat Area */}
