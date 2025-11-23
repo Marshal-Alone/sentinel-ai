@@ -8,7 +8,7 @@ export interface MemoryItem {
   mimeType?: string;
   timestamp: number;
   metadata?: {
-    platform?: 'YOUTUBE' | 'INSTAGRAM' | 'NETFLIX' | 'CRUNCHYROLL' | 'OTHER';
+    platform?: 'YOUTUBE' | 'INSTAGRAM' | 'NETFLIX' | 'CRUNCHYROLL' | 'GITHUB' | 'HUGGING FACE' | 'STACK OVERFLOW' | 'LOCAL' | 'WEB' | 'OTHER';
     url?: string;
     description?: string;
   };

@@ -69,6 +69,17 @@ const App: React.FC = () => {
   // Brain Status
   const [brainOnline, setBrainOnline] = useState(false);
 
+  const getPlatform = (url: string): string => {
+    if (!url) return 'OTHER';
+    const lowerUrl = url.toLowerCase();
+    if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) return 'YOUTUBE';
+    if (lowerUrl.includes('github.com')) return 'GITHUB';
+    if (lowerUrl.includes('huggingface.co')) return 'HUGGING FACE';
+    if (lowerUrl.includes('stackoverflow.com')) return 'STACK OVERFLOW';
+    if (lowerUrl.includes('localhost')) return 'LOCAL';
+    return 'WEB';
+  };
+
   // Check for Python Backend on mount AND fetch memories
   useEffect(() => {
     const checkBrain = async () => {
@@ -80,22 +91,38 @@ const App: React.FC = () => {
         const cloudMemories = await brainService.fetchAll();
         if (cloudMemories.length > 0) {
           const mappedCloudMemories: MemoryItem[] = cloudMemories.map((bm, idx) => ({
-            id: bm.metadata?.url || `cloud-${idx}`, // Use URL as ID to dedupe
+            id: bm.metadata?.url || `cloud-${idx}`,
             type: 'VIDEO_LOG',
             title: bm.metadata.title,
             content: bm.content,
             timestamp: new Date(bm.metadata.time).getTime(),
             metadata: {
               url: bm.metadata.url,
-              platform: bm.metadata.url.includes('youtube') ? 'YOUTUBE' : 'OTHER',
+              platform: getPlatform(bm.metadata.url) as any,
               description: bm.content.substring(0, 100)
             }
           }));
 
           setMemories(prev => {
-            const existingIds = new Set(prev.map(m => m.metadata?.url || m.id));
-            const newMemories = mappedCloudMemories.filter(bm => !existingIds.has(bm.metadata?.url));
-            return [...newMemories, ...prev];
+            // Dedupe by URL
+            const uniqueMap = new Map<string, MemoryItem>();
+
+            // Add existing (local) memories first
+            prev.forEach(m => {
+              const key = m.metadata?.url || m.id;
+              uniqueMap.set(key, m);
+            });
+
+            // Add/Overwrite with Cloud memories (prefer cloud version if needed, or just ensure uniqueness)
+            mappedCloudMemories.forEach(m => {
+              const key = m.metadata?.url || m.id;
+              // Only add if not present (or maybe update?) - Let's just ensure uniqueness
+              if (!uniqueMap.has(key)) {
+                uniqueMap.set(key, m);
+              }
+            });
+
+            return Array.from(uniqueMap.values()).sort((a, b) => b.timestamp - a.timestamp);
           });
         }
       }
@@ -157,7 +184,7 @@ const App: React.FC = () => {
           timestamp: new Date(bm.metadata.time).getTime(),
           metadata: {
             url: bm.metadata.url,
-            platform: bm.metadata.url.includes('youtube') ? 'YOUTUBE' : 'OTHER',
+            platform: getPlatform(bm.metadata.url),
             description: bm.content.substring(0, 100)
           }
         }));
@@ -168,9 +195,21 @@ const App: React.FC = () => {
 
         // VISUALIZE: Add Brain memories to the Sidebar so the user can see them
         setMemories(prev => {
-          const existingIds = new Set(prev.map(m => m.metadata?.url || m.id));
-          const newMemories = mappedBrainMemories.filter(bm => !existingIds.has(bm.metadata?.url));
-          return [...newMemories, ...prev];
+          const uniqueMap = new Map<string, MemoryItem>();
+
+          // Keep existing
+          prev.forEach(m => {
+            const key = m.metadata?.url || m.id;
+            uniqueMap.set(key, m);
+          });
+
+          // Add new from search
+          mappedBrainMemories.forEach(m => {
+            const key = m.metadata?.url || m.id;
+            uniqueMap.set(key, m); // Update/Add
+          });
+
+          return Array.from(uniqueMap.values()).sort((a, b) => b.timestamp - a.timestamp);
         });
 
         // DEBUG: Notify user of brain activity
