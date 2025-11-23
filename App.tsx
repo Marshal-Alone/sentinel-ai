@@ -124,9 +124,23 @@ const App: React.FC = () => {
       if (mode === 'LIFE' && brainOnline) {
         console.log("Fetching from Brain...");
         const brainMemories = await brainService.recall(userMsg.text);
+        // Map Brain Memory to App MemoryItem
+        const mappedBrainMemories: MemoryItem[] = brainMemories.map((bm, idx) => ({
+          id: `brain-${idx}-${Date.now()}`,
+          type: 'VIDEO_LOG',
+          title: bm.metadata.title,
+          content: bm.content,
+          timestamp: new Date(bm.metadata.time).getTime(),
+          metadata: {
+            url: bm.metadata.url,
+            platform: bm.metadata.url.includes('youtube') ? 'YOUTUBE' : 'OTHER',
+            description: bm.content.substring(0, 100)
+          }
+        }));
+
         // Combine local manual logs with brain results
         const localLogs = memories.filter(m => m.type !== 'PDF'); // Keep manual logs
-        activeMemories = [...localLogs, ...brainMemories];
+        activeMemories = [...localLogs, ...mappedBrainMemories];
       }
 
       const responseText = await generateSentinelResponse(

@@ -3,10 +3,10 @@
 function getPageContext() {
   const title = document.title;
   const url = window.location.href;
-  
+
   // Basic Metadata
   const metaDesc = document.querySelector("meta[name='description']")?.content || "";
-  
+
   // Platform Specific Scrapers
   let specificContext = "";
 
@@ -24,27 +24,27 @@ function getPageContext() {
 
   // General Context (H1s)
   const headers = Array.from(document.querySelectorAll('h1'))
-      .map(h => h.innerText)
-      .join(" - ");
+    .map(h => h.innerText)
+    .join(" - ");
 
   return {
-      title: title,
-      url: url,
-      content: `${title}. ${metaDesc}. ${headers}. ${specificContext}`,
-      platform: window.location.hostname,
-      timestamp: new Date().toISOString() // ISO String for Python backend
+    title: title,
+    url: url,
+    content: `${title}. ${metaDesc}. ${headers}. ${specificContext}`,
+    platform: window.location.hostname,
+    timestamp: new Date().toISOString() // ISO String for Python backend
   };
 }
 
 // Auto-log active page after 3 seconds
 setTimeout(() => {
   const data = getPageContext();
-  chrome.runtime.sendMessage({ type: "SAVE_ACTIVITY", payload: data });
+  chrome.runtime.sendMessage({ type: "log_activity", payload: data });
 }, 3000);
 
 // Listen for manual triggers if needed
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "snapshot") {
-      sendResponse(getPageContext());
+    sendResponse(getPageContext());
   }
 });
