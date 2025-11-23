@@ -98,8 +98,49 @@ function getPageContext() {
   // --- STRATEGY 4: YOUTUBE SPECIFIC ---
   else if (url.includes("youtube.com/watch") || url.includes("youtu.be/")) {
     type = "video";
-    // For YouTube, just send the URL and title - the backend will fetch the full transcript
-    content = `YouTube Video: ${url}`;
+
+    // Extract video ID
+    let videoId = null;
+    if (url.includes("v=")) {
+      videoId = url.split("v=")[1].split("&")[0];
+    } else if (url.includes("youtu.be/")) {
+      videoId = url.split("youtu.be/")[1].split("?")[0];
+    }
+
+    // Get video title and description from page
+    const videoTitle = document.querySelector('h1.ytd-video-primary-info-renderer, yt-formatted-string.ytd-watch-metadata')?.innerText || title;
+    const descriptionEl = document.querySelector('ytd-expandable-video-description-body-renderer, #description-inline-expander');
+    const description = descriptionEl?.innerText || "";
+
+    // Try to fetch transcript
+    let transcript = "";
+    if (videoId) {
+      try {
+        // YouTube's internal API endpoint for captions
+        const captionsUrl = `https://www.youtube.com/api/timedtext?v=${videoId}&lang=en`;
+
+        // Try to fetch (this may fail due to CORS, but worth trying)
+        fetch(captionsUrl)
+          .then(res => res.text())
+          .then(xml => {
+            // Parse XML transcript
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xml, "text/xml");
+            const texts = Array.from(doc.querySelectorAll("text")).map(t => t.textContent);
+            if (texts.length > 0) {
+              transcript = texts.join(" ");
+            }
+          })
+          .catch(err => {
+            console.log("Couldn't fetch transcript:", err);
+          });
+      } catch (e) {
+        console.log("Transcript fetch error:", e);
+      }
+    }
+
+    // Combine all available info
+    content = `YouTube Video: ${videoTitle}\n\nVideo ID: ${videoId}\n\nDescription:\n${description}\n\n${transcript ? `Transcript:\n${transcript.substring(0, 5000)}` : 'Transcript not available'}`;
   }
 
   // --- STRATEGY 5: GENERIC WEBPAGE ---

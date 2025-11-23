@@ -149,19 +149,16 @@ async def ingest_activity(log: ActivityLog):
     
     # 1. YOUTUBE STRATEGY
     if "youtube.com" in log.url or "youtu.be" in log.url:
-        vid_id = extract_video_id(log.url)
-        print(f"   🎥 YouTube detected. Video ID: {vid_id}")
-        if vid_id:
-            transcript = get_youtube_transcript(vid_id)
-            if transcript:
-                # We combine the Title + Transcript for maximum searchability
-                final_content = f"VIDEO TITLE: {log.title}\n\nTRANSCRIPT:\n{transcript[:10000]}" # Store up to 10k chars
-                print(f"   ✅ YouTube Transcript attached. Length: {len(transcript)} chars")
-            else:
-                print("   ❌ Failed to fetch YouTube transcript. Using title only.")
-                final_content = f"VIDEO TITLE: {log.title}\nURL: {log.url}\n(Transcript unavailable)"
+        print(f"   🎥 YouTube detected.")
+        
+        # Note: HF Spaces cannot access YouTube due to network restrictions
+        # We rely on the extension to scrape title/description/transcript
+        if log.content and len(log.content) > 100:
+            final_content = f"VIDEO: {log.title}\n\nCONTENT:\n{log.content}"
+            print(f"   ✅ Using video data from extension. Length: {len(log.content)} chars")
         else:
-            print("   ❌ Could not extract video ID from URL")
+            print(f"   ⚠️ No video data from extension. Using title only.")
+            final_content = f"VIDEO TITLE: {log.title}\nURL: {log.url}"
 
     # 2. INSTAGRAM / TIKTOK STRATEGY
     elif "instagram.com/reel" in log.url or "tiktok.com" in log.url:
@@ -180,8 +177,6 @@ async def ingest_activity(log: ActivityLog):
     # 3. INSTAGRAM DM (Private) -> TRUST THE EXTENSION
     elif "instagram.com/direct" in log.url:
         print("   💬 Private Chat detected. Using text from Extension.")
-        # Do NOT run yt-dlp here. 
-        # We trust the text the extension scraped (log.content).
         final_content = f"PRIVATE CHAT LOG:\n{log.content}"
 
     # 3. Create the Memory (Embedding)
