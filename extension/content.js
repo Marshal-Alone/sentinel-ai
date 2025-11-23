@@ -56,11 +56,43 @@ function getPageContext() {
   // --- STRATEGY 3: INSTAGRAM REELS SPECIFIC ---
   else if (url.includes("instagram.com/reel")) {
     type = "social_video";
-    // We rely on the URL mainly, but try to grab visible caption if possible
-    const captionEl = document.querySelector('h1') || document.querySelector('span._aacl');
-    const captionText = captionEl ? captionEl.innerText : "Watched an Instagram Reel";
 
-    content = `Reel URL: ${url} - Caption Preview: ${captionText}`;
+    // Extract caption - Instagram uses various selectors
+    let caption = "";
+
+    // Try multiple selectors (Instagram changes these frequently)
+    const captionSelectors = [
+      'h1',
+      'span._ap3a._aaco._aacu._aacx._aad7._aade',
+      'span.x193iq5w',
+      '[class*="Caption"]',
+      'div[role="button"] span'
+    ];
+
+    for (const selector of captionSelectors) {
+      const element = document.querySelector(selector);
+      if (element && element.innerText && element.innerText.length > 10) {
+        caption = element.innerText;
+        break;
+      }
+    }
+
+    // Get username
+    let username = "Unknown";
+    const usernameEl = document.querySelector('a.x1i10hfl.xjbqb8w');
+    if (usernameEl) {
+      username = usernameEl.innerText || usernameEl.getAttribute('href')?.split('/')[1] || "Unknown";
+    }
+
+    // Fallback: get all visible text from main content area
+    if (!caption || caption.length < 10) {
+      const mainContent = document.querySelector('article, main');
+      if (mainContent) {
+        caption = mainContent.innerText.substring(0, 500);
+      }
+    }
+
+    content = `Instagram Reel by ${username}\n\nCaption: ${caption || "No caption available"}\n\nURL: ${url}`;
   }
 
   // --- STRATEGY 4: YOUTUBE SPECIFIC ---

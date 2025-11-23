@@ -50,26 +50,42 @@ class Query(BaseModel):
 def get_youtube_transcript(video_id):
     """Fetches the full spoken transcript of a YouTube video."""
     try:
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-        # Combine all the lines into one big text block
-        full_text = " ".join([t['text'] for t in transcript_list])
+        # Correct usage: static method that returns list of transcript dicts
+        from youtube_transcript_api import YouTubeTranscriptApi as YT_API
+        
+        transcript_list = YT_API.get_transcript(video_id, languages=['en', 'en-US'])
+        
+        # Combine all text segments
+        full_text = " ".join([entry['text'] for entry in transcript_list])
         return full_text
+        
     except Exception as e:
         print(f"Error getting YT transcript: {e}")
-        return None
+        # Try without language specification
+        try:
+            from youtube_transcript_api import YouTubeTranscriptApi as YT_API
+            transcript_list = YT_API.get_transcript(video_id)
+            full_text = " ".join([entry['text'] for entry in transcript_list])
+            return full_text
+        except:
+            return None
+    
+    return None
 
 def get_instagram_details(url):
     """Fetches captions, subtitles, and metadata from Instagram/TikTok videos."""
     ydl_opts = {
-        'quiet': True,
-        'skip_download': True, # We only want text, not the video file
-        'no_warnings': True,
+        'quiet': False,  # Enable output for debugging
+        'skip_download': True,
+        'no_warnings': False,  # Show warnings for debugging
         'ignoreerrors': True,
-        'writesubtitles': True,  # Try to get subtitles if available
-        'writeautomaticsub': True,  # Get auto-generated subs
-        'subtitleslangs': ['en', 'en-US'],  # Prefer English
+        'writesubtitles': True,
+        'writeautomaticsub': True,
+        'subtitleslangs': ['en', 'en-US'],
+        'verbose': True,  # Enable verbose mode
     }
     try:
+        print(f"   Attempting to fetch from: {url}")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             if info:
@@ -77,6 +93,8 @@ def get_instagram_details(url):
                 description = info.get('description', '')
                 uploader = info.get('uploader', 'Unknown')
                 title = info.get('title', '')
+                
+                print(f"   Extracted - Title: {title[:50]}, Uploader: {uploader}")
                 
                 # Try to get subtitles/captions
                 subtitles = info.get('subtitles', {})
@@ -87,7 +105,6 @@ def get_instagram_details(url):
                 if subtitles:
                     for lang, subs in subtitles.items():
                         if subs and len(subs) > 0:
-                            # yt-dlp returns subtitle data, we'd need to download and parse
                             subtitle_text = f"[Subtitles available in {lang}]"
                             break
                 
@@ -104,8 +121,12 @@ def get_instagram_details(url):
                     full_context += f"\n\n{subtitle_text}"
                 
                 return full_context
+            else:
+                print("   No info returned from yt-dlp")
     except Exception as e:
+        import traceback
         print(f"Error getting Instagram/TikTok details: {e}")
+        print(f"Full traceback:\n{traceback.format_exc()}")
     return None
 
 def extract_video_id(url):
@@ -150,13 +171,15 @@ async def ingest_activity(log: ActivityLog):
     # 2. INSTAGRAM / TIKTOK STRATEGY
     elif "instagram.com/reel" in log.url or "tiktok.com" in log.url:
         platform = "Instagram" if "instagram" in log.url else "TikTok"
-        print(f"   📱 {platform} detected. Fetching metadata...")
-        ig_details = get_instagram_details(log.url)
-        if ig_details:
-            final_content = f"SOCIAL POST: {log.title}\n\nDETAILS:\n{ig_details}"
-            print(f"   ✅ {platform} context attached. Length: {len(ig_details)} chars")
+        print(f"   📱 {platform} detected.")
+        
+        # Note: HF Spaces cannot access Instagram due to network restrictions
+        # We rely on the extension to scrape the caption before sending
+        if log.content and len(log.content) > 50:
+            final_content = f"SOCIAL POST: {log.title}\n\nCONTENT:\n{log.content}"
+            print(f"   ✅ Using caption from extension. Length: {len(log.content)} chars")
         else:
-            print(f"   ❌ Failed to fetch {platform} details. Using title only.")
+            print(f"   ⚠️ No caption from extension. Using title only.")
             final_content = f"SOCIAL POST: {log.title}\nURL: {log.url}"
 
     # 3. INSTAGRAM DM (Private) -> TRUST THE EXTENSION
