@@ -2,6 +2,6 @@ fastapi
 uvicorn
 pydantic
 sentence-transformers
-pinecone-client
+pinecone
 youtube-transcript-api
 python-multipart

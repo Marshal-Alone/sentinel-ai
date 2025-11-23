@@ -13,7 +13,8 @@ export interface BrainResponse {
 }
 
 // Default to localhost, but allow override via environment variable or config
-const API_URL = "http://localhost:8000";
+// Default to the deployed Hugging Face Space, but allow override via environment variable
+const API_URL = import.meta.env.VITE_API_URL || "https://sa-d-bo-sentinel-brain.hf.space";
 
 export const brainService = {
   async recall(query: string): Promise<Memory[]> {
