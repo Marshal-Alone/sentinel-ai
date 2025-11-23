@@ -96,6 +96,11 @@ function getPageContext() {
       }
     }
 
+    console.log("📱 Instagram Reel Extraction:");
+    console.log("  - Username:", username);
+    console.log("  - Caption length:", caption?.length || 0);
+    console.log("  - Caption preview:", caption?.substring(0, 100) || "No caption");
+
     content = `Instagram Reel by ${username}\n\nCaption: ${caption || "No caption available"}\n\nURL: ${url}`;
   }
 
@@ -143,6 +148,14 @@ function getPageContext() {
       }
     }
 
+    console.log("🎥 YouTube Video Extraction:");
+    console.log("  - Video ID:", videoId);
+    console.log("  - Title:", videoTitle);
+    console.log("  - Description length:", description?.length || 0);
+    console.log("  - Description preview:", description?.substring(0, 100) || "No description");
+    console.log("  - Transcript length:", transcript?.length || 0);
+    console.log("  - Transcript preview:", transcript?.substring(0, 100) || "No transcript");
+
     // Combine all available info
     content = `YouTube Video: ${videoTitle}\n\nVideo ID: ${videoId}\n\nDescription:\n${description}\n\n${transcript ? `Transcript:\n${transcript.substring(0, 5000)}` : 'Transcript not available'}`;
   }
@@ -156,6 +169,12 @@ function getPageContext() {
       .join(" ");
     content = `${title} - ${metaDesc} - ${headers}`;
   }
+
+  console.log("✅ Final Extraction Data:");
+  console.log("  - Type:", type);
+  console.log("  - Title:", title);
+  console.log("  - Content length:", content?.length || 0);
+  console.log("  - Content preview:", content?.substring(0, 150));
 
   return {
     title: title,
