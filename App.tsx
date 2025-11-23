@@ -141,6 +141,14 @@ const App: React.FC = () => {
         // Combine local manual logs with brain results
         const localLogs = memories.filter(m => m.type !== 'PDF'); // Keep manual logs
         activeMemories = [...localLogs, ...mappedBrainMemories];
+
+        // DEBUG: Notify user of brain activity
+        setChatHistory(prev => [...prev, {
+          id: Date.now().toString() + '-debug',
+          role: 'model',
+          text: `*System Debug:* Found ${mappedBrainMemories.length} relevant memories in the Brain.`,
+          timestamp: Date.now()
+        }]);
       }
 
       const responseText = await generateSentinelResponse(
